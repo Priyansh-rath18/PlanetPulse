@@ -82,5 +82,4 @@ None required — authentication is intentionally **not implemented**, per the h
 ## Standard API
 **No.** This submission has no server-side data API — all state lives in the browser (`localStorage`), and the only server route (`/api/global-emissions`) is a public-data proxy unrelated to grading. Please grade via a **browser agent driving the UI**.
 
-## Demo recording
-_Add the 3–4 minute walkthrough link here before submitting._
+
