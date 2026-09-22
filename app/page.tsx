@@ -1104,15 +1104,11 @@ export default function Home() {
   ) {
     const number = Number(value);
 
-    if (
-      !Number.isFinite(number) ||
-      number <= 0
-    ) {
-      setTarget(1);
+    if (!Number.isFinite(number)) {
       return;
     }
 
-    setTarget(number);
+    setTarget(Math.max(number, 0));
   }
 
   /*
@@ -1448,7 +1444,7 @@ export default function Home() {
 
             <input
               type="number"
-              min="1"
+              min="0"
               step="0.1"
               value={target}
               onChange={(event) =>
