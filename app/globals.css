@@ -15,6 +15,24 @@ main{min-height:100vh;max-width:1240px;margin:auto;padding:0 28px 40px;position:
 .historyHeader{align-items:center}.filters{display:flex;gap:8px;align-items:center;margin:18px 0 10px;flex-wrap:wrap}.filters input,.selectWrap,.unitBox,.modal input{height:38px;background:#0a1410;border:1px solid var(--line);border-radius:9px;color:#cfe0d7;padding:0 11px;font-size:11px}.selectWrap{display:flex;align-items:center;gap:8px;color:#779087}.selectWrap select{background:transparent;border:0;outline:0;color:#cfe0d7;min-width:150px}.selectWrap select option{background:#0a1410}.to{font-size:11px;color:#647970}.tableWrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:650px}th{text-align:left;font-size:9px;letter-spacing:1.4px;color:#62766e;font-weight:800;padding:12px 9px;border-bottom:1px solid var(--line)}td{padding:13px 9px;border-bottom:1px solid #14231c;color:#8ea098;font-size:11px}td strong{color:#d7e5de}.activityCell{display:flex;align-items:center;gap:9px;color:#dbe9e1}.activityIcon{width:31px;height:31px;border-radius:8px;display:grid;place-items:center;background:#12251b;color:var(--green)}.deleteBtn{background:none;border:0;color:#53675f}.deleteBtn:hover{color:#ff8f82}.tableEmpty{padding:30px}.historyPanel{margin-bottom:30px}footer{display:flex;justify-content:space-between;color:#52665d;font-size:10px;padding:8px 3px}footer span:first-child{display:flex;align-items:center;gap:6px;color:#70877c}
 .modalBackdrop{position:fixed;inset:0;background:rgba(2,7,5,.72);backdrop-filter:blur(10px);display:grid;place-items:center;padding:20px;z-index:20}.modal{width:min(540px,100%);background:#0b1712;border:1px solid #294136;border-radius:18px;padding:23px;box-shadow:0 30px 100px rgba(0,0,0,.55)}.modalTop{display:flex;justify-content:space-between;margin-bottom:22px}.modal h2{margin:6px 0 0;font-size:22px}.iconBtn{background:#122019;border:1px solid var(--line);color:#9badA5;width:34px;height:34px;border-radius:9px;display:grid;place-items:center}.modal>label,.inputRow label{display:block;color:#82958d;font-size:10px;letter-spacing:1px;font-weight:700;margin:13px 0 8px}.typeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.typeBtn{background:#0d1b15;color:#81958c;border:1px solid var(--line);border-radius:9px;padding:10px 7px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:10px}.typeBtn:hover,.activeType{border-color:#5d9f66;color:var(--green);background:#12251a}.inputRow{display:grid;grid-template-columns:1fr 130px;gap:9px}.inputRow input{width:100%}.unitBox{display:flex;align-items:center;color:#a8bbb2}.calcPreview{margin:18px 0;background:#101f17;border:1px solid #254132;border-radius:11px;padding:13px}.calcPreview span,.calcPreview small{display:block;color:#71867d;font-size:10px}.calcPreview strong{display:block;font-size:20px;margin:3px 0}.wide{width:100%;margin-top:5px}.modalNotice{display:flex;align-items:center;gap:7px;background:var(--dangerBg);border:1px solid #60312c;color:#ffab9e;padding:10px;border-radius:9px;font-size:11px;margin-bottom:10px}
 @media(max-width:850px){main{padding:0 16px}.hero{padding:45px 5px 35px}.heroGlobe{display:none}.statsGrid,.dashboardGrid{grid-template-columns:1fr}.globalPulse{align-items:flex-start}.pulseRate{display:none}.nav{height:68px}.hero h1{letter-spacing:-2.5px}.panel{padding:17px}.typeGrid{grid-template-columns:repeat(2,1fr)}footer{gap:15px;flex-direction:column}}
+
+/* =========================
+   STREAK
+========================= */
+
+.streakCard {
+  transition: all 0.3s ease;
+}
+
+.streakCard.active {
+  background: rgba(255, 107, 107, 0.08);
+  border-color: #ff6b6b;
+  box-shadow: 0 0 20px rgba(255, 107, 107, 0.1);
+}
+
+.streakCard.active .statTop svg {
+  color: #ff6b6b;
+}
 /* =========================
    SMART INSIGHTS
 ========================= */

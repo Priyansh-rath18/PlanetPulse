@@ -13,6 +13,7 @@ import {
   CircleAlert,
   Cloud,
   Filter,
+  Flame,
   Gauge,
   Leaf,
   Plane,
@@ -45,6 +46,12 @@ type Entry = {
   quantity: number;
   date: string;
   emission: number;
+};
+
+type Streak = {
+  current: number;
+  startDate: string;
+  lastUpdated: string;
 };
 
 type Factor = {
@@ -227,6 +234,13 @@ export default function Home() {
   const [globalLoading, setGlobalLoading] =
     useState<boolean>(true);
 
+  const [streak, setStreak] =
+    useState<Streak>({
+      current: 0,
+      startDate: "",
+      lastUpdated: dateKey(today),
+    });
+
   /*
    * --------------------------------
    * LOAD SAVED DATA
@@ -245,6 +259,11 @@ export default function Home() {
           "50"
       );
 
+      const savedStreak = JSON.parse(
+        localStorage.getItem("carbon_streak") ||
+          '{"current":0,"startDate":"","lastUpdated":""}'
+      );
+
       if (Array.isArray(savedEntries)) {
         setEntries(savedEntries);
       }
@@ -255,9 +274,21 @@ export default function Home() {
           ? savedTarget
           : 50
       );
+
+      if (
+        savedStreak &&
+        typeof savedStreak === "object"
+      ) {
+        setStreak(savedStreak);
+      }
     } catch {
       setEntries([]);
       setTarget(50);
+      setStreak({
+        current: 0,
+        startDate: "",
+        lastUpdated: dateKey(today),
+      });
     }
   }, []);
 
@@ -300,6 +331,26 @@ export default function Home() {
       );
     }
   }, [target]);
+
+  /*
+   * --------------------------------
+   * SAVE STREAK
+   * --------------------------------
+   */
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "carbon_streak",
+        JSON.stringify(streak)
+      );
+    } catch (error) {
+      console.error(
+        "Could not save streak:",
+        error
+      );
+    }
+  }, [streak]);
 
   /*
    * --------------------------------
@@ -486,6 +537,65 @@ export default function Home() {
         0
       );
   }, [entries]);
+
+  /*
+   * --------------------------------
+   * DAILY AVERAGE & STREAK
+   * --------------------------------
+   */
+
+  const dailyAverage = target / 7;
+
+  const isTodayUnderAverage =
+    todayTotal < dailyAverage;
+
+  const todayKey = dateKey(today);
+
+  useEffect(() => {
+    /*
+     * Update streak based on today's
+     * emission vs daily average
+     */
+
+    if (
+      streak.lastUpdated !== todayKey
+    ) {
+      /*
+       * New day detected
+       */
+
+      if (isTodayUnderAverage) {
+        if (streak.current === 0) {
+          setStreak({
+            current: 1,
+            startDate: todayKey,
+            lastUpdated: todayKey,
+          });
+        } else {
+          setStreak((prev) => ({
+            current: prev.current + 1,
+            startDate:
+              prev.startDate,
+            lastUpdated: todayKey,
+          }));
+        }
+      } else {
+        /*
+         * Streak broken or not started
+         */
+
+        setStreak({
+          current: 0,
+          startDate: "",
+          lastUpdated: todayKey,
+        });
+      }
+    }
+  }, [
+    todayKey,
+    isTodayUnderAverage,
+    streak,
+  ]);
 
   /*
    * --------------------------------
@@ -1136,6 +1246,41 @@ export default function Home() {
 
           <div className="miniTrend">
             Your activity today
+          </div>
+        </div>
+
+        {/* STREAK */}
+
+        <div className={`statCard streakCard ${streak.current > 0 ? "active" : ""}`}>
+          <div className="statTop">
+            <span>STREAK</span>
+
+            <Flame
+              size={18}
+              style={{
+                fill:
+                  streak.current >
+                  0
+                    ? "currentColor"
+                    : "none",
+              }}
+            />
+          </div>
+
+          <div className="bigNumber">
+            {streak.current}
+            <small>
+              {streak.current ===
+              1
+                ? "day"
+                : "days"}
+            </small>
+          </div>
+
+          <div className="miniTrend">
+            {streak.current > 0
+              ? `${dailyAverage.toFixed(1)} kg/day target`
+              : "Stay under daily average"}
           </div>
         </div>
       </section>
