@@ -10,7 +10,6 @@ import {
   ChevronDown,
   CircleAlert,
   Cloud,
-  Droplets,
   Filter,
   Gauge,
   Leaf,
@@ -26,8 +25,6 @@ import {
   Bike,
   Truck,
 } from "lucide-react";
-
-import CarbonProfile from "./components/CarbonProfile";
 
 type ActivityType =
   | "car"
@@ -46,80 +43,55 @@ type Entry = {
   quantity: number;
   date: string;
   emission: number;
-  payload?: number;
 };
 
-type Profile = {
-  vehicles: {
-    id: string;
-    kind: "car" | "bus" | "bike" | "auto" | "truck";
-    trips: number;
-    distance: number;
-    payload?: number;
-  }[];
-  monthlyKwh: number;
-  householdSize: number;
-  country: "India";
-  reduction: number;
-  updatedAt: string;
+type Factor = {
+  label: string;
+  unit: string;
+  factor: number;
 };
 
-const FACTORS: Record<
-  ActivityType,
-  {
-    label: string;
-    unit: string;
-    factor: number;
-  }
-> = {
+const FACTORS: Record<ActivityType, Factor> = {
   car: {
     label: "Car travel",
     unit: "km",
     factor: 0.2,
   },
-
   bus: {
     label: "Bus travel",
     unit: "km",
     factor: 0.08,
   },
-
   flight: {
     label: "Flight",
     unit: "km",
     factor: 0.25,
   },
-
   electricity: {
     label: "Electricity",
     unit: "kWh",
     factor: 0.8,
   },
-
   veg: {
     label: "Veg meal",
     unit: "meal",
     factor: 0.5,
   },
-
   nonveg: {
     label: "Non-veg meal",
     unit: "meal",
     factor: 2.0,
   },
-
   bike: {
     label: "Motorcycle / Bike",
     unit: "km",
     factor: 0.16,
   },
-
   auto: {
     label: "Auto Rickshaw",
     unit: "km",
     factor: 0.35,
   },
-
   truck: {
     label: "Truck",
     unit: "tonne-km",
@@ -127,13 +99,7 @@ const FACTORS: Record<
   },
 };
 
-const ICONS: Record<
-  ActivityType,
-  React.ComponentType<{
-    size?: number;
-    strokeWidth?: number;
-  }>
-> = {
+const ICONS: Record<ActivityType, typeof Car> = {
   car: Car,
   bus: BusFront,
   flight: Plane,
@@ -145,165 +111,98 @@ const ICONS: Record<
   truck: Truck,
 };
 
+const TRANSPORT_TYPES: ActivityType[] = [
+  "car",
+  "bus",
+  "flight",
+  "bike",
+  "auto",
+  "truck",
+];
+
+const FOOD_TYPES: ActivityType[] = [
+  "veg",
+  "nonveg",
+];
+
 const today = new Date();
 
-function dateKey(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+function dateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
-  return `${y}-${m}-${day}`;
+  return `${year}-${month}-${day}`;
 }
 
-function mondayOfWeek(d: Date) {
-  const copy = new Date(d);
+function mondayOfWeek(date: Date): Date {
+  const copy = new Date(date);
   const day = copy.getDay();
 
-  const diff =
-    day === 0
-      ? -6
-      : 1 - day;
+  const diff = day === 0 ? -6 : 1 - day;
 
-  copy.setDate(
-    copy.getDate() + diff
-  );
-
-  copy.setHours(
-    0,
-    0,
-    0,
-    0
-  );
+  copy.setDate(copy.getDate() + diff);
+  copy.setHours(0, 0, 0, 0);
 
   return copy;
 }
 
-function formatDate(s: string) {
-  return new Intl.DateTimeFormat(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }
-  ).format(
-    new Date(`${s}T12:00:00`)
-  );
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${value}T12:00:00`));
 }
 
-function formatShortDate(d: Date) {
-  return new Intl.DateTimeFormat(
-    "en-IN",
-    {
-      day: "2-digit",
-      month: "short",
-    }
-  ).format(d);
+function formatShortDate(date: Date): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+  }).format(date);
 }
 
 export default function Home() {
-  const [
-    entries,
-    setEntries,
-  ] = useState<Entry[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [target, setTarget] = useState<number>(50);
 
-  const [
-    target,
-    setTarget,
-  ] = useState(50);
+  const [modal, setModal] = useState<boolean>(false);
 
-  const [
-    modal,
-    setModal,
-  ] = useState(false);
+  const [type, setType] =
+    useState<ActivityType>("car");
 
-  const [
-    profileModal,
-    setProfileModal,
-  ] = useState(false);
+  const [quantity, setQuantity] =
+    useState<string>("");
 
-  const [
-    type,
-    setType,
-  ] =
-    useState<ActivityType>(
-      "car"
-    );
+  const [entryDate, setEntryDate] =
+    useState<string>(dateKey(today));
 
-  const [
-    quantity,
-    setQuantity,
-  ] = useState("");
+  const [filterType, setFilterType] =
+    useState<"all" | ActivityType>("all");
 
-  const [
-    entryDate,
-    setEntryDate,
-  ] = useState(
-    dateKey(today)
-  );
+  const [fromDate, setFromDate] =
+    useState<string>("");
 
-  const [
-    filterType,
-    setFilterType,
-  ] =
-    useState<
-      "all" | ActivityType
-    >("all");
+  const [toDate, setToDate] =
+    useState<string>("");
 
-  const [
-    fromDate,
-    setFromDate,
-  ] = useState("");
+  const [notice, setNotice] =
+    useState<string>("");
 
-  const [
-    toDate,
-    setToDate,
-  ] = useState("");
+  const [globalPulse, setGlobalPulse] =
+    useState<number | null>(null);
 
-  const [
-    notice,
-    setNotice,
-  ] = useState("");
+  const [globalRate, setGlobalRate] =
+    useState<number | null>(null);
 
-  const [
-    globalPulse,
-    setGlobalPulse,
-  ] = useState<number | null>(
-    null
-  );
+  const [globalUpdatedAt, setGlobalUpdatedAt] =
+    useState<string | null>(null);
 
-  const [
-    globalRate,
-    setGlobalRate,
-  ] = useState<number | null>(
-    null
-  );
+  const [globalSource, setGlobalSource] =
+    useState<string>("Climate TRACE");
 
-  const [
-    globalUpdatedAt,
-    setGlobalUpdatedAt,
-  ] = useState<
-    string | null
-  >(null);
-
-  const [
-    globalSource,
-    setGlobalSource,
-  ] = useState(
-    "Climate TRACE"
-  );
-
-  const [
-    globalLoading,
-    setGlobalLoading,
-  ] = useState(true);
-
-  const [
-    profile,
-    setProfile,
-  ] = useState<
-    Profile | null
-  >(null);
+  const [globalLoading, setGlobalLoading] =
+    useState<boolean>(true);
 
   /*
    * LOAD SAVED DATA
@@ -311,51 +210,31 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const saved =
-        JSON.parse(
-          localStorage.getItem(
-            "carbon_entries"
-          ) || "[]"
-        );
-
-      const savedTarget =
-        Number(
-          localStorage.getItem(
-            "carbon_target"
-          ) || "50"
-        );
-
-      const savedProfile =
-        localStorage.getItem(
-          "carbon_profile"
-        );
-
-      setEntries(
-        Array.isArray(saved)
-          ? saved
-          : []
+      const savedEntries = JSON.parse(
+        localStorage.getItem("carbon_entries") || "[]"
       );
 
+      const savedTarget = Number(
+        localStorage.getItem("carbon_target") || "50"
+      );
+
+      if (Array.isArray(savedEntries)) {
+        setEntries(savedEntries);
+      }
+
       setTarget(
-        savedTarget > 0
+        Number.isFinite(savedTarget) && savedTarget > 0
           ? savedTarget
           : 50
       );
-
-      if (savedProfile) {
-        setProfile(
-          JSON.parse(
-            savedProfile
-          )
-        );
-      }
     } catch {
-      // Ignore malformed localStorage
+      setEntries([]);
+      setTarget(50);
     }
   }, []);
 
   /*
-   * SAVE ACTIVITIES
+   * SAVE ENTRIES
    */
 
   useEffect(() => {
@@ -377,7 +256,7 @@ export default function Home() {
   }, [target]);
 
   /*
-   * GLOBAL EMISSIONS API
+   * GLOBAL CARBON API
    */
 
   useEffect(() => {
@@ -385,45 +264,52 @@ export default function Home() {
 
     async function loadGlobalEmissions() {
       try {
-        const response =
-          await fetch(
-            "/api/global-emissions",
-            {
-              cache: "no-store",
-            }
-          );
+        setGlobalLoading(true);
+
+        const response = await fetch(
+          "/api/global-emissions",
+          {
+            cache: "no-store",
+          }
+        );
 
         if (!response.ok) {
           throw new Error(
-            `Global emissions API returned ${response.status}`
+            `API returned ${response.status}`
           );
         }
 
-        const data =
-          await response.json();
+        const data: {
+          currentTonnes?: number;
+          tonnesPerSecond?: number;
+          dataAsOf?: string;
+          source?: string;
+        } = await response.json();
 
         if (cancelled) return;
 
-        setGlobalPulse(
-          Number(
-            data.currentTonnes
-          )
+        const current = Number(
+          data.currentTonnes
         );
 
-        setGlobalRate(
-          Number(
-            data.tonnesPerSecond
-          )
+        const rate = Number(
+          data.tonnesPerSecond
         );
+
+        if (Number.isFinite(current)) {
+          setGlobalPulse(current);
+        }
+
+        if (Number.isFinite(rate)) {
+          setGlobalRate(rate);
+        }
 
         setGlobalUpdatedAt(
-          data.dataAsOf ||
-            null
+          data.dataAsOf || null
         );
 
         setGlobalSource(
-          data.source ||
-            "Climate TRACE"
+          data.source || "Climate TRACE"
         );
       } catch (error) {
         console.error(
@@ -432,9 +318,7 @@ export default function Home() {
         );
       } finally {
         if (!cancelled) {
-          setGlobalLoading(
-            false
-          );
+          setGlobalLoading(false);
         }
       }
     }
@@ -458,40 +342,40 @@ export default function Home() {
       return;
     }
 
-    const timer =
-      setInterval(() => {
-        setGlobalPulse(
-          (value) =>
-            value === null
-              ? value
-              : value +
-                globalRate
-        );
-      }, 1000);
+    const timer = window.setInterval(() => {
+      setGlobalPulse((current) => {
+        if (current === null) {
+          return current;
+        }
 
-    return () =>
-      clearInterval(timer);
-  }, [
-    globalPulse !== null,
-    globalRate,
-  ]);
+        return current + globalRate;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [globalRate]);
 
   /*
    * WEEK
    */
 
-  const weekStart =
-    mondayOfWeek(today);
+  const weekStart = useMemo(
+    () => mondayOfWeek(today),
+    []
+  );
 
   const weekStartKey =
     dateKey(weekStart);
 
-  const weekEnd =
-    new Date(weekStart);
+  const weekEnd = useMemo(() => {
+    const end = new Date(weekStart);
 
-  weekEnd.setDate(
-    weekEnd.getDate() + 6
-  );
+    end.setDate(end.getDate() + 6);
+
+    return end;
+  }, [weekStart]);
 
   const weekEndKey =
     dateKey(weekEnd);
@@ -500,42 +384,55 @@ export default function Home() {
    * WEEKLY DATA
    */
 
-  const weeklyEntries =
-    entries.filter(
-      (e) =>
-        e.date >=
-          weekStartKey &&
-        e.date <=
-          weekEndKey
-    );
+  const weeklyEntries = useMemo(
+    () =>
+      entries.filter(
+        (entry) =>
+          entry.date >= weekStartKey &&
+          entry.date <= weekEndKey
+      ),
+    [
+      entries,
+      weekStartKey,
+      weekEndKey,
+    ]
+  );
 
-  const weeklyTotal =
-    weeklyEntries.reduce(
-      (a, e) =>
-        a + e.emission,
-      0
-    );
-
-  const todayTotal =
-    entries
-      .filter(
-        (e) =>
-          e.date ===
-          dateKey(today)
-      )
-      .reduce(
-        (a, e) =>
-          a + e.emission,
+  const weeklyTotal = useMemo(
+    () =>
+      weeklyEntries.reduce(
+        (total, entry) =>
+          total + entry.emission,
         0
-      );
+      ),
+    [weeklyEntries]
+  );
+
+  const todayTotal = useMemo(
+    () => {
+      const todayKey = dateKey(today);
+
+      return entries
+        .filter(
+          (entry) =>
+            entry.date === todayKey
+        )
+        .reduce(
+          (total, entry) =>
+            total + entry.emission,
+          0
+        );
+    },
+    [entries]
+  );
 
   const progress =
-    Math.min(
-      (weeklyTotal /
-        target) *
-        100,
-      100
-    );
+    target > 0
+      ? Math.min(
+          (weeklyTotal / target) * 100,
+          100
+        )
+      : 0;
 
   const exceeded =
     weeklyTotal > target;
@@ -544,167 +441,181 @@ export default function Home() {
    * CATEGORY BREAKDOWN
    */
 
-  const categories =
-    useMemo(() => {
-      const map: Record<
-        string,
-        number
-      > = {};
+  const categories = useMemo(() => {
+    const map: Record<
+      "Transport" | "Food" | "Energy",
+      number
+    > = {
+      Transport: 0,
+      Food: 0,
+      Energy: 0,
+    };
 
-      weeklyEntries.forEach(
-        (e) => {
-          const group =
-            [
-              "car",
-              "bus",
-              "flight",
-              "bike",
-              "auto",
-              "truck",
-            ].includes(
-              e.type
-            )
-              ? "Transport"
-              : [
-                  "veg",
-                  "nonveg",
-                ].includes(
-                  e.type
-                )
-              ? "Food"
-              : "Energy";
+    weeklyEntries.forEach((entry) => {
+      let category:
+        | "Transport"
+        | "Food"
+        | "Energy";
 
-          map[group] =
-            (map[group] ||
-              0) +
-            e.emission;
-        }
-      );
+      if (
+        TRANSPORT_TYPES.includes(
+          entry.type
+        )
+      ) {
+        category = "Transport";
+      } else if (
+        FOOD_TYPES.includes(
+          entry.type
+        )
+      ) {
+        category = "Food";
+      } else {
+        category = "Energy";
+      }
 
-      return Object.entries(
-        map
-      ).sort(
-        (a, b) =>
-          b[1] - a[1]
-      );
-    }, [
-      weeklyEntries,
-    ]);
+      map[category] += entry.emission;
+    });
+
+    return (
+      Object.entries(map)
+        .filter(
+          ([, value]) => value > 0
+        )
+        .sort(
+          (a, b) => b[1] - a[1]
+        )
+    );
+  }, [weeklyEntries]);
+
+  const maxCategory =
+    Math.max(
+      ...categories.map(
+        ([, value]) => value
+      ),
+      1
+    );
 
   /*
    * HISTORY FILTER
    */
 
-  const filteredEntries =
-    entries
-      .filter(
-        (e) =>
-          filterType ===
-            "all" ||
-          e.type ===
-            filterType
-      )
-      .filter(
-        (e) =>
-          !fromDate ||
-          e.date >= fromDate
-      )
-      .filter(
-        (e) =>
-          !toDate ||
-          e.date <= toDate
-      )
-      .sort((a, b) =>
-        b.date.localeCompare(
-          a.date
+  const filteredEntries = useMemo(
+    () =>
+      entries
+        .filter(
+          (entry) =>
+            filterType === "all" ||
+            entry.type === filterType
         )
-      );
+        .filter(
+          (entry) =>
+            !fromDate ||
+            entry.date >= fromDate
+        )
+        .filter(
+          (entry) =>
+            !toDate ||
+            entry.date <= toDate
+        )
+        .sort(
+          (a, b) =>
+            b.date.localeCompare(
+              a.date
+            )
+        ),
+    [
+      entries,
+      filterType,
+      fromDate,
+      toDate,
+    ]
+  );
 
   /*
    * DAILY WEEK DATA
    */
 
-  const weekDays =
-    Array.from(
-      {
-        length: 7,
-      },
-      (_, i) => {
-        const d =
-          new Date(
-            weekStart
+  const weekDays = useMemo(
+    () =>
+      Array.from(
+        { length: 7 },
+        (_, index) => {
+          const date =
+            new Date(weekStart);
+
+          date.setDate(
+            date.getDate() +
+              index
           );
 
-        d.setDate(
-          d.getDate() + i
-        );
+          const key =
+            dateKey(date);
 
-        const key =
-          dateKey(d);
-
-        return {
-          key,
-          label:
-            new Intl.DateTimeFormat(
-              "en",
-              {
-                weekday:
-                  "short",
-              }
-            ).format(d),
-
-          value:
+          const value =
             weeklyEntries
               .filter(
-                (e) =>
-                  e.date ===
-                  key
+                (entry) =>
+                  entry.date === key
               )
               .reduce(
-                (a, e) =>
-                  a +
-                  e.emission,
+                (total, entry) =>
+                  total +
+                  entry.emission,
                 0
-              ),
-        };
-      }
-    );
+              );
 
-  const maxDay =
-    Math.max(
-      ...weekDays.map(
-        (d) => d.value
+          return {
+            key,
+            label:
+              new Intl.DateTimeFormat(
+                "en",
+                {
+                  weekday:
+                    "short",
+                }
+              ).format(date),
+            value,
+          };
+        }
       ),
-      1
-    );
+    [weekStart, weeklyEntries]
+  );
+
+  const maxDay = Math.max(
+    ...weekDays.map(
+      (day) => day.value
+    ),
+    1
+  );
 
   /*
    * ADD ACTIVITY
    */
 
   function addActivity() {
-    const q =
-      Number(quantity);
+    const q = Number(quantity);
 
-    if (!q || q <= 0) {
+    if (
+      !Number.isFinite(q) ||
+      q <= 0
+    ) {
       setNotice(
         "Enter a quantity greater than 0."
       );
       return;
     }
 
-    /*
-     * Absurd input protection
-     */
+    if (!entryDate) {
+      setNotice(
+        "Please select a date."
+      );
+      return;
+    }
 
     if (
-      [
-        "car",
-        "bus",
-        "flight",
-        "bike",
-        "auto",
-      ].includes(type) &&
+      TRANSPORT_TYPES.includes(
+        type
+      ) &&
       q > 10000
     ) {
       setNotice(
@@ -714,8 +625,7 @@ export default function Home() {
     }
 
     if (
-      type ===
-        "electricity" &&
+      type === "electricity" &&
       q > 100000
     ) {
       setNotice(
@@ -725,10 +635,7 @@ export default function Home() {
     }
 
     if (
-      [
-        "veg",
-        "nonveg",
-      ].includes(type) &&
+      FOOD_TYPES.includes(type) &&
       q > 1000
     ) {
       setNotice(
@@ -738,94 +645,67 @@ export default function Home() {
     }
 
     const emission =
-      q *
-      FACTORS[type]
-        .factor;
+      q * FACTORS[type].factor;
 
-    const entry: Entry =
-      {
-        id:
-          crypto.randomUUID(),
+    const entry: Entry = {
+      id: crypto.randomUUID(),
+      type,
+      quantity: q,
+      date: entryDate,
+      emission,
+    };
 
-        type,
-
-        quantity: q,
-
-        date: entryDate,
-
-        emission,
-      };
-
-    setEntries(
-      (prev) => [
-        ...prev,
-        entry,
-      ]
-    );
+    setEntries((previous) => [
+      ...previous,
+      entry,
+    ]);
 
     setQuantity("");
-
     setNotice("");
-
     setModal(false);
   }
 
   /*
-   * REMOVE ENTRY
+   * REMOVE
    */
 
-  function removeEntry(
-    id: string
-  ) {
-    setEntries(
-      (prev) =>
-        prev.filter(
-          (e) =>
-            e.id !== id
-        )
+  function removeEntry(id: string) {
+    setEntries((previous) =>
+      previous.filter(
+        (entry) =>
+          entry.id !== id
+      )
     );
   }
 
   /*
-   * RESET FILTERS
+   * FILTER RESET
    */
 
   function clearFilters() {
-    setFilterType(
-      "all"
-    );
-
+    setFilterType("all");
     setFromDate("");
-
     setToDate("");
   }
 
   /*
-   * APPLY PERSONAL BUDGET
+   * TARGET CHANGE
    */
 
-  function applyPersonalBudget(
-    weeklyBudget: number,
-    newProfile: Profile
+  function handleTargetChange(
+    value: string
   ) {
-    setTarget(
-      Math.max(
-        1,
-        Number(
-          weeklyBudget.toFixed(
-            1
-          )
-        )
-      )
-    );
+    const number = Number(value);
 
-    setProfile(
-      newProfile
-    );
+    if (
+      !Number.isFinite(number) ||
+      number <= 0
+    ) {
+      setTarget(1);
+      return;
+    }
 
-    setProfileModal(
-      false
-    );
+    setTarget(number);
   }
 
   /*
@@ -849,9 +729,7 @@ export default function Home() {
           <div>
             <strong>
               Carbon
-              <span>
-                Pulse
-              </span>
+              <span>Pulse</span>
             </strong>
 
             <small>
@@ -861,42 +739,15 @@ export default function Home() {
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            alignItems:
-              "center",
-          }}
+        <button
+          className="primaryBtn"
+          onClick={() =>
+            setModal(true)
+          }
         >
-          <button
-            className="secondaryBtn"
-            onClick={() =>
-              setProfileModal(
-                true
-              )
-            }
-          >
-            <Gauge
-              size={16}
-            />
-
-            Build my budget
-          </button>
-
-          <button
-            className="primaryBtn"
-            onClick={() =>
-              setModal(true)
-            }
-          >
-            <Plus
-              size={18}
-            />
-
-            Log activity
-          </button>
-        </div>
+          <Plus size={18} />
+          Log activity
+        </button>
       </nav>
 
       {/* HERO */}
@@ -905,17 +756,13 @@ export default function Home() {
         <div>
           <div className="eyebrow">
             <span className="liveDot" />
-
             LIVE ESTIMATE •{" "}
             {new Intl.DateTimeFormat(
               "en",
               {
-                month:
-                  "short",
-                day:
-                  "numeric",
-                year:
-                  "numeric",
+                month: "short",
+                day: "numeric",
+                year: "numeric",
               }
             ).format(today)}
           </div>
@@ -923,39 +770,30 @@ export default function Home() {
           <h1>
             See your impact.
             <br />
-
             <span>
-              Change your
-              trajectory.
+              Change your trajectory.
             </span>
           </h1>
 
           <p>
-            Turn everyday
-            choices into a
-            clear carbon
-            footprint — without
-            guilt, guesswork,
-            or complicated
+            Turn everyday choices
+            into a clear carbon
+            footprint — without guilt,
+            guesswork, or complicated
             accounting.
           </p>
         </div>
 
         <div className="heroGlobe">
           <div className="globeRing ring1" />
-
           <div className="globeRing ring2" />
 
           <div className="globeCore">
-            <Cloud
-              size={40}
-            />
+            <Cloud size={40} />
           </div>
 
           <div className="orbitDot dotA" />
-
           <div className="orbitDot dotB" />
-
           <div className="orbitDot dotC" />
         </div>
       </section>
@@ -964,39 +802,32 @@ export default function Home() {
 
       <section className="globalPulse">
         <div className="pulseIcon">
-          <Cloud
-            size={22}
-          />
+          <Cloud size={22} />
         </div>
 
         <div className="pulseCopy">
           <span>
-            GLOBAL CARBON
-            PULSE
+            GLOBAL CARBON PULSE
           </span>
 
           <strong>
             {globalLoading ||
-            globalPulse ===
-              null
+            globalPulse === null
               ? "Loading…"
               : `${globalPulse.toLocaleString(
                   "en-IN",
                   {
-                    maximumFractionDigits:
-                      0,
+                    maximumFractionDigits: 0,
                   }
                 )} tonnes`}
           </strong>
 
           <small>
             2026 global GHG
-            estimate · Climate
-            TRACE data through
-            June 2026 ·
-            continuously
-            extrapolated between
-            data updates
+            estimate · Climate TRACE
+            data through June 2026 ·
+            continuously extrapolated
+            between data updates
           </small>
 
           {globalUpdatedAt && (
@@ -1005,36 +836,26 @@ export default function Home() {
               {new Intl.DateTimeFormat(
                 "en-IN",
                 {
-                  day:
-                    "2-digit",
-                  month:
-                    "short",
-                  year:
-                    "numeric",
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
                 }
               ).format(
                 new Date(
                   `${globalUpdatedAt}T12:00:00`
                 )
               )}{" "}
-              ·{" "}
-              {globalSource}
+              · {globalSource}
             </small>
           )}
         </div>
 
         <div className="pulseRate">
-          <ArrowUpRight
-            size={16}
-          />
-
+          <ArrowUpRight size={16} />
           ~
-          {globalRate ===
-          null
+          {globalRate === null
             ? "—"
-            : globalRate.toFixed(
-                0
-              )}{" "}
+            : globalRate.toFixed(0)}{" "}
           tonnes/sec
         </div>
       </section>
@@ -1044,29 +865,17 @@ export default function Home() {
       <section className="statsGrid">
         <div className="statCard mainStat">
           <div className="statTop">
-            <span>
-              THIS WEEK
-            </span>
-
-            <Gauge
-              size={18}
-            />
+            <span>THIS WEEK</span>
+            <Gauge size={18} />
           </div>
 
           <div className="bigNumber">
-            {weeklyTotal.toFixed(
-              1
-            )}{" "}
-            <small>
-              kg CO₂
-            </small>
+            {weeklyTotal.toFixed(1)}{" "}
+            <small>kg CO₂</small>
           </div>
 
           <div className="miniTrend">
-            <ArrowDownRight
-              size={15}
-            />
-
+            <ArrowDownRight size={15} />
             Personal activity
             footprint
           </div>
@@ -1074,22 +883,13 @@ export default function Home() {
 
         <div className="statCard">
           <div className="statTop">
-            <span>
-              WEEKLY TARGET
-            </span>
-
-            <Leaf
-              size={18}
-            />
+            <span>WEEKLY TARGET</span>
+            <Leaf size={18} />
           </div>
 
           <div className="bigNumber">
-            {target.toFixed(
-              1
-            )}{" "}
-            <small>
-              kg
-            </small>
+            {target.toFixed(1)}{" "}
+            <small>kg</small>
           </div>
 
           <label className="targetEdit">
@@ -1098,15 +898,11 @@ export default function Home() {
             <input
               type="number"
               min="1"
+              step="0.1"
               value={target}
-              onChange={(
-                e
-              ) =>
-                setTarget(
-                  Number(
-                    e.target
-                      .value
-                  ) || 1
+              onChange={(event) =>
+                handleTargetChange(
+                  event.target.value
                 )
               }
             />
@@ -1115,27 +911,17 @@ export default function Home() {
 
         <div className="statCard">
           <div className="statTop">
-            <span>
-              TODAY
-            </span>
-
-            <CalendarDays
-              size={18}
-            />
+            <span>TODAY</span>
+            <CalendarDays size={18} />
           </div>
 
           <div className="bigNumber">
-            {todayTotal.toFixed(
-              1
-            )}{" "}
-            <small>
-              kg
-            </small>
+            {todayTotal.toFixed(1)}{" "}
+            <small>kg</small>
           </div>
 
           <div className="miniTrend">
-            Your activity
-            today
+            Your activity today
           </div>
         </div>
       </section>
@@ -1197,25 +983,19 @@ export default function Home() {
 
           <div className="progressMeta">
             <strong>
-              {weeklyTotal.toFixed(
-                1
-              )}{" "}
-              /{" "}
-              {target.toFixed(
-                1
-              )}{" "}
-              kg
+              {weeklyTotal.toFixed(1)}{" "}
+              / {target.toFixed(1)} kg
             </strong>
 
             <span>
-              {Math.min(
-                (weeklyTotal /
-                  target) *
-                  100,
-                999
-              ).toFixed(
-                0
-              )}
+              {target > 0
+                ? Math.min(
+                    (weeklyTotal /
+                      target) *
+                      100,
+                    999
+                  ).toFixed(0)
+                : "0"}
               %
             </span>
           </div>
@@ -1228,13 +1008,9 @@ export default function Home() {
             }
           >
             {exceeded ? (
-              <CircleAlert
-                size={20}
-              />
+              <CircleAlert size={20} />
             ) : (
-              <Sparkles
-                size={20}
-              />
+              <Sparkles size={20} />
             )}
 
             <div>
@@ -1251,23 +1027,6 @@ export default function Home() {
               </p>
             </div>
           </div>
-
-          {profile && (
-            <div
-              style={{
-                marginTop: 12,
-                fontSize: 11,
-                opacity:
-                  0.65,
-              }}
-            >
-              Personalized
-              target based on
-              your transport,
-              electricity and
-              reduction goal.
-            </div>
-          )}
         </div>
 
         {/* BREAKDOWN */}
@@ -1280,30 +1039,23 @@ export default function Home() {
               </span>
 
               <h2>
-                Where it comes
-                from
+                Where it comes from
               </h2>
             </div>
 
-            <Activity
-              size={18}
-            />
+            <Activity size={18} />
           </div>
 
           <div className="bars">
             {categories.length ===
             0 ? (
               <div className="empty">
-                Add activities to
-                see your
-                breakdown.
+                Add activities to see
+                your breakdown.
               </div>
             ) : (
               categories.map(
-                ([
-                  name,
-                  value,
-                ]) => (
+                ([name, value]) => (
                   <div
                     className="barRow"
                     key={name}
@@ -1327,15 +1079,7 @@ export default function Home() {
                         style={{
                           width: `${Math.max(
                             (value /
-                              Math.max(
-                                ...categories.map(
-                                  (
-                                    c
-                                  ) =>
-                                    c[1]
-                                ),
-                                1
-                              )) *
+                              maxCategory) *
                               100,
                             5
                           )}%`,
@@ -1370,42 +1114,38 @@ export default function Home() {
         </div>
 
         <div className="weekChart">
-          {weekDays.map(
-            (d) => (
-              <div
-                className="dayCol"
-                key={d.key}
-              >
-                <div className="dayValue">
-                  {d.value
-                    ? `${d.value.toFixed(
-                        1
-                      )}`
-                    : "—"}
-                </div>
-
-                <div className="chartBarTrack">
-                  <div
-                    className="chartBar"
-                    style={{
-                      height: `${Math.max(
-                        (d.value /
-                          maxDay) *
-                          100,
-                        d.value
-                          ? 8
-                          : 2
-                      )}%`,
-                    }}
-                  />
-                </div>
-
-                <span>
-                  {d.label}
-                </span>
+          {weekDays.map((day) => (
+            <div
+              className="dayCol"
+              key={day.key}
+            >
+              <div className="dayValue">
+                {day.value
+                  ? day.value.toFixed(1)
+                  : "—"}
               </div>
-            )
-          )}
+
+              <div className="chartBarTrack">
+                <div
+                  className="chartBar"
+                  style={{
+                    height: `${Math.max(
+                      (day.value /
+                        maxDay) *
+                        100,
+                      day.value
+                        ? 8
+                        : 2
+                    )}%`,
+                  }}
+                />
+              </div>
+
+              <span>
+                {day.label}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -1419,40 +1159,28 @@ export default function Home() {
             </span>
 
             <h2>
-              History &
-              filters
+              History & filters
             </h2>
           </div>
 
           <button
             className="secondaryBtn"
-            onClick={
-              clearFilters
-            }
+            onClick={clearFilters}
           >
-            <RefreshCw
-              size={15}
-            />
-
+            <RefreshCw size={15} />
             Reset filters
           </button>
         </div>
 
         <div className="filters">
           <div className="selectWrap">
-            <Filter
-              size={15}
-            />
+            <Filter size={15} />
 
             <select
-              value={
-                filterType
-              }
-              onChange={(
-                e
-              ) =>
+              value={filterType}
+              onChange={(event) =>
                 setFilterType(
-                  e.target
+                  event.target
                     .value as
                     | "all"
                     | ActivityType
@@ -1460,38 +1188,37 @@ export default function Home() {
               }
             >
               <option value="all">
-                All activity
-                types
+                All activity types
               </option>
 
-              {Object.entries(
-                FACTORS
+              {(
+                Object.entries(
+                  FACTORS
+                ) as [
+                  ActivityType,
+                  Factor
+                ][]
               ).map(
-                ([
-                  key,
-                  v,
-                ]) => (
+                ([key, factor]) => (
                   <option
                     key={key}
                     value={key}
                   >
-                    {v.label}
+                    {factor.label}
                   </option>
                 )
               )}
             </select>
 
-            <ChevronDown
-              size={15}
-            />
+            <ChevronDown size={15} />
           </div>
 
           <input
             type="date"
             value={fromDate}
-            onChange={(e) =>
+            onChange={(event) =>
               setFromDate(
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1503,9 +1230,9 @@ export default function Home() {
           <input
             type="date"
             value={toDate}
-            onChange={(e) =>
+            onChange={(event) =>
               setToDate(
-                e.target.value
+                event.target.value
               )
             }
           />
@@ -1515,22 +1242,10 @@ export default function Home() {
           <table>
             <thead>
               <tr>
-                <th>
-                  Activity
-                </th>
-
-                <th>
-                  Date
-                </th>
-
-                <th>
-                  Quantity
-                </th>
-
-                <th>
-                  CO₂
-                </th>
-
+                <th>Activity</th>
+                <th>Date</th>
+                <th>Quantity</th>
+                <th>CO₂</th>
                 <th />
               </tr>
             </thead>
@@ -1539,9 +1254,7 @@ export default function Home() {
               {filteredEntries.length ===
               0 ? (
                 <tr>
-                  <td
-                    colSpan={5}
-                  >
+                  <td colSpan={5}>
                     <div className="empty tableEmpty">
                       No activities
                       match these
@@ -1551,35 +1264,31 @@ export default function Home() {
                 </tr>
               ) : (
                 filteredEntries.map(
-                  (e) => {
+                  (entry) => {
                     const Icon =
                       ICONS[
-                        e.type
+                        entry.type
                       ];
 
                     return (
                       <tr
                         key={
-                          e.id
+                          entry.id
                         }
                       >
                         <td>
                           <div className="activityCell">
                             <span className="activityIcon">
                               <Icon
-                                size={
-                                  17
-                                }
+                                size={17}
                               />
                             </span>
 
                             <strong>
                               {
                                 FACTORS[
-                                  e
-                                    .type
-                                ]
-                                  .label
+                                  entry.type
+                                ].label
                               }
                             </strong>
                           </div>
@@ -1587,24 +1296,24 @@ export default function Home() {
 
                         <td>
                           {formatDate(
-                            e.date
+                            entry.date
                           )}
                         </td>
 
                         <td>
-                          {e.quantity.toLocaleString(
+                          {entry.quantity.toLocaleString(
                             "en-IN"
                           )}{" "}
                           {
                             FACTORS[
-                              e.type
+                              entry.type
                             ].unit
                           }
                         </td>
 
                         <td>
                           <strong>
-                            {e.emission.toFixed(
+                            {entry.emission.toFixed(
                               2
                             )}{" "}
                             kg
@@ -1614,18 +1323,14 @@ export default function Home() {
                         <td>
                           <button
                             className="deleteBtn"
-                            aria-label="Delete"
+                            aria-label="Delete activity"
                             onClick={() =>
                               removeEntry(
-                                e.id
+                                entry.id
                               )
                             }
                           >
-                            <X
-                              size={
-                                15
-                              }
-                            />
+                            <X size={15} />
                           </button>
                         </td>
                       </tr>
@@ -1642,17 +1347,13 @@ export default function Home() {
 
       <footer>
         <span>
-          <Leaf
-            size={15}
-          />
-
+          <Leaf size={15} />
           CarbonPulse
         </span>
 
         <span>
-          Built for Climate
-          Tech · No account
-          required
+          Built for Climate Tech ·
+          No account required
         </span>
       </footer>
 
@@ -1661,13 +1362,15 @@ export default function Home() {
       {modal && (
         <div
           className="modalBackdrop"
-          onMouseDown={(
-            e
-          ) =>
-            e.target ===
-              e.currentTarget &&
-            setModal(false)
-          }
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              setModal(false);
+              setNotice("");
+            }
+          }}
         >
           <div className="modal">
             <div className="modalTop">
@@ -1683,11 +1386,11 @@ export default function Home() {
 
               <button
                 className="iconBtn"
-                onClick={() =>
-                  setModal(
-                    false
-                  )
-                }
+                onClick={() => {
+                  setModal(false);
+                  setNotice("");
+                }}
+                aria-label="Close"
               >
                 <X />
               </button>
@@ -1702,34 +1405,30 @@ export default function Home() {
                 Object.keys(
                   FACTORS
                 ) as ActivityType[]
-              ).map((k) => {
+              ).map((key) => {
                 const Icon =
-                  ICONS[k];
+                  ICONS[key];
 
                 return (
                   <button
-                    key={k}
+                    type="button"
+                    key={key}
                     className={
-                      type === k
+                      type === key
                         ? "typeBtn activeType"
                         : "typeBtn"
                     }
-                    onClick={() =>
-                      setType(
-                        k
-                      )
-                    }
+                    onClick={() => {
+                      setType(key);
+                      setNotice("");
+                    }}
                   >
-                    <Icon
-                      size={
-                        18
-                      }
-                    />
+                    <Icon size={18} />
 
                     <span>
                       {
                         FACTORS[
-                          k
+                          key
                         ].label
                       }
                     </span>
@@ -1750,17 +1449,13 @@ export default function Home() {
                   min="0"
                   step="any"
                   placeholder="e.g. 10"
-                  value={
-                    quantity
-                  }
-                  onChange={(
-                    e
-                  ) =>
+                  value={quantity}
+                  onChange={(event) => {
                     setQuantity(
-                      e.target
-                        .value
-                    )
-                  }
+                      event.target.value
+                    );
+                    setNotice("");
+                  }}
                 />
               </div>
 
@@ -1785,30 +1480,23 @@ export default function Home() {
 
             <input
               type="date"
-              value={
-                entryDate
-              }
-              onChange={(
-                e
-              ) =>
+              value={entryDate}
+              onChange={(event) => {
                 setEntryDate(
-                  e.target
-                    .value
-                )
-              }
+                  event.target.value
+                );
+                setNotice("");
+              }}
             />
 
             <div className="calcPreview">
               <span>
-                Estimated
-                footprint
+                Estimated footprint
               </span>
 
               <strong>
                 {quantity &&
-                Number(
-                  quantity
-                ) > 0
+                Number(quantity) > 0
                   ? (
                       Number(
                         quantity
@@ -1816,9 +1504,7 @@ export default function Home() {
                       FACTORS[
                         type
                       ].factor
-                    ).toFixed(
-                      2
-                    )
+                    ).toFixed(2)
                   : "0.00"}{" "}
                 kg CO₂
               </strong>
@@ -1840,49 +1526,24 @@ export default function Home() {
 
             {notice && (
               <div className="modalNotice">
-                <CircleAlert
-                  size={
-                    16
-                  }
-                />
-
+                <CircleAlert size={16} />
                 {notice}
               </div>
             )}
 
             <button
+              type="button"
               className="primaryBtn wide"
               onClick={
                 addActivity
               }
             >
-              <Save
-                size={
-                  17
-                }
-              />
-
+              <Save size={17} />
               Save activity
             </button>
           </div>
         </div>
       )}
-
-      {/* PERSONAL CARBON PROFILE */}
-
-      <CarbonProfile
-        open={
-          profileModal
-        }
-        onClose={() =>
-          setProfileModal(
-            false
-          )
-        }
-        onApply={
-          applyPersonalBudget
-        }
-      />
     </main>
   );
 }
