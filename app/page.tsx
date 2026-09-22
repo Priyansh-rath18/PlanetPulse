@@ -1,6 +1,11 @@
 "use client";
 
 import CarbonProfile from "./components/CarbonProfile";
+import Achievements from "./components/Achievements";
+import BadgeModal, {
+  type BadgeModalData,
+} from "./components/BadgeModal";
+import ShareModal from "./components/ShareModal";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -28,6 +33,16 @@ import {
   Bike,
   Truck,
 } from "lucide-react";
+import {
+  checkBadges,
+  getBadgeStatuses,
+  getCurrentMonthProgress,
+  getEarnedMonthlyStatuses,
+  type BadgeStatus,
+  type EarnedBadges,
+  type UnlockedBadgeInfo,
+} from "./lib/badges";
+import type { ShareBadge } from "./lib/shareCard";
 
 type ActivityType =
   | "car"
@@ -241,6 +256,29 @@ export default function Home() {
       lastUpdated: dateKey(today),
     });
 
+  /* Badges: this state only observes `entries`/`streak` above. */
+
+  const [loaded, setLoaded] =
+    useState(false);
+
+  const [earnedBadges, setEarnedBadges] =
+    useState<EarnedBadges>({});
+
+  const [unlockQueue, setUnlockQueue] =
+    useState<UnlockedBadgeInfo[]>([]);
+
+  const [viewBadge, setViewBadge] =
+    useState<BadgeStatus | null>(null);
+
+  const [shareBadge, setShareBadge] =
+    useState<ShareBadge | null>(null);
+
+  const [displayName, setDisplayName] =
+    useState<string>("");
+
+  const [showNameOnCard, setShowNameOnCard] =
+    useState<boolean>(false);
+
   /*
    * --------------------------------
    * LOAD SAVED DATA
@@ -281,6 +319,30 @@ export default function Home() {
       ) {
         setStreak(savedStreak);
       }
+
+      const savedBadges = JSON.parse(
+        localStorage.getItem("carbon_badges") ||
+          "{}"
+      );
+
+      if (
+        savedBadges &&
+        typeof savedBadges === "object"
+      ) {
+        setEarnedBadges(savedBadges);
+      }
+
+      setDisplayName(
+        localStorage.getItem(
+          "carbon_display_name"
+        ) || ""
+      );
+
+      setShowNameOnCard(
+        localStorage.getItem(
+          "carbon_show_name"
+        ) === "true"
+      );
     } catch {
       setEntries([]);
       setTarget(50);
@@ -289,6 +351,9 @@ export default function Home() {
         startDate: "",
         lastUpdated: dateKey(today),
       });
+      setEarnedBadges({});
+    } finally {
+      setLoaded(true);
     }
   }, []);
 
@@ -351,6 +416,49 @@ export default function Home() {
       );
     }
   }, [streak]);
+
+  /*
+   * --------------------------------
+   * SAVE BADGES + SHARE PREFS
+   * --------------------------------
+   */
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    try {
+      localStorage.setItem(
+        "carbon_badges",
+        JSON.stringify(earnedBadges)
+      );
+    } catch (error) {
+      console.error(
+        "Could not save badges:",
+        error
+      );
+    }
+  }, [loaded, earnedBadges]);
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    try {
+      localStorage.setItem(
+        "carbon_display_name",
+        displayName
+      );
+
+      localStorage.setItem(
+        "carbon_show_name",
+        String(showNameOnCard)
+      );
+    } catch (error) {
+      console.error(
+        "Could not save share prefs:",
+        error
+      );
+    }
+  }, [loaded, displayName, showNameOnCard]);
 
   /*
    * --------------------------------
@@ -592,6 +700,120 @@ export default function Home() {
     isTodayUnderAverage,
     streak.lastUpdated,
   ]);
+
+  /*
+   * --------------------------------
+   * BADGE ENGINE
+   * --------------------------------
+   *
+   * Observes `entries` + `streak` above (the existing
+   * source of truth) — does not compute its own streak.
+   * Uses a functional update so `earnedBadges` never needs
+   * to be a dependency here, which keeps this idempotent on
+   * reload (no re-trigger of the unlock animation/duplicates).
+   */
+
+  useEffect(() => {
+    if (!loaded) return;
+
+    setEarnedBadges((prevEarned) => {
+      const result = checkBadges(
+        entries,
+        streak,
+        dailyAverage,
+        prevEarned
+      );
+
+      if (result.newlyUnlocked.length > 0) {
+        setUnlockQueue((prevQueue) => [
+          ...prevQueue,
+          ...result.newlyUnlocked,
+        ]);
+
+        return result.updatedEarned;
+      }
+
+      return prevEarned;
+    });
+  }, [
+    loaded,
+    entries,
+    streak.current,
+    streak.lastUpdated,
+    dailyAverage,
+  ]);
+
+  const activeUnlock =
+    unlockQueue[0] || null;
+
+  function dismissUnlock() {
+    setUnlockQueue((previous) =>
+      previous.slice(1)
+    );
+  }
+
+  const badgeStatuses = useMemo(
+    () =>
+      getBadgeStatuses(
+        streak,
+        earnedBadges
+      ),
+    [streak.current, earnedBadges]
+  );
+
+  const monthlyBadgeStatuses = useMemo(
+    () =>
+      getEarnedMonthlyStatuses(
+        earnedBadges
+      ),
+    [earnedBadges]
+  );
+
+  const monthProgress = useMemo(
+    () =>
+      getCurrentMonthProgress(
+        entries,
+        dailyAverage
+      ),
+    [entries, dailyAverage]
+  );
+
+  const badgeModalData: BadgeModalData | null =
+    activeUnlock
+      ? { ...activeUnlock, mode: "unlock" }
+      : viewBadge && viewBadge.earned
+      ? {
+          id: viewBadge.id,
+          emoji: viewBadge.emoji,
+          name: viewBadge.name,
+          description: viewBadge.description,
+          image: viewBadge.image,
+          earnedAt: viewBadge.earnedAt || "",
+          mode: "view",
+        }
+      : null;
+
+  function closeBadgeModal() {
+    if (activeUnlock) {
+      dismissUnlock();
+    } else {
+      setViewBadge(null);
+    }
+  }
+
+  function openShareForCurrentBadge() {
+    const source = activeUnlock || viewBadge;
+
+    if (!source) return;
+
+    setShareBadge({
+      id: source.id,
+      emoji: source.emoji,
+      name: source.name,
+      description: source.description,
+      image: source.image,
+    });
+  }
 
   /*
    * --------------------------------
@@ -1514,6 +1736,17 @@ export default function Home() {
       </section>
 
       {/* ================================
+          ACHIEVEMENTS
+          ================================ */}
+
+      <Achievements
+        statuses={badgeStatuses}
+        monthlyStatuses={monthlyBadgeStatuses}
+        monthProgress={monthProgress}
+        onSelect={setViewBadge}
+      />
+
+      {/* ================================
           HISTORY
           ================================ */}
 
@@ -1951,6 +2184,31 @@ export default function Home() {
         onApply={
           applyPersonalBudget
         }
+      />
+
+      {/* ================================
+          BADGE UNLOCK / VIEW MODAL
+          ================================ */}
+
+      <BadgeModal
+        badge={badgeModalData}
+        streakDays={streak.current}
+        onClose={closeBadgeModal}
+        onShare={openShareForCurrentBadge}
+      />
+
+      {/* ================================
+          SHARE MODAL
+          ================================ */}
+
+      <ShareModal
+        badge={shareBadge}
+        streakDays={streak.current}
+        displayName={displayName}
+        onDisplayNameChange={setDisplayName}
+        showName={showNameOnCard}
+        onShowNameChange={setShowNameOnCard}
+        onClose={() => setShareBadge(null)}
       />
     </main>
   );

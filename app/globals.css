@@ -290,3 +290,302 @@ main{min-height:100vh;max-width:1240px;margin:auto;padding:0 28px 40px;position:
     max-width: none;
   }
 }
+
+/* =========================
+   ACHIEVEMENTS
+========================= */
+
+.achievementsPanel { margin-bottom: 14px; }
+
+.badgeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.badgeCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: var(--space-md) var(--space-sm);
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  color: inherit;
+  font: inherit;
+  cursor: default;
+  transition: border-color var(--transition-slow), transform var(--transition-slow);
+}
+
+.badgeCard strong { font-size: 13px; letter-spacing: -.1px; }
+.badgeCard p { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+.badgeEarned {
+  cursor: pointer;
+  border-color: #2a5038;
+  background: rgba(167,243,107,.05);
+}
+
+.badgeEarned:hover { transform: translateY(-2px); border-color: var(--green); }
+
+.badgeLocked { opacity: .5; filter: grayscale(.6); }
+.badgeLocked:disabled { cursor: default; }
+
+.badgeInProgress { opacity: .85; filter: none; }
+
+.badgeLockTag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: rgba(0,0,0,.4);
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.badgeIconWrap {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.badgeIconImg { width: 100%; height: 100%; object-fit: contain; }
+
+.badgeIconFallback {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+}
+
+.badgeEarnedDate { font-size: 10px; color: var(--green); font-weight: 700; }
+
+.badgeProgress { width: 100%; margin-top: 2px; }
+.badgeProgress span { display: block; font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+.badgeProgressTrack {
+  height: 5px;
+  background: #16251e;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.badgeProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #5ebf79, #a7f36b);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+.monthlyGuardianSection { margin-top: var(--space-lg); }
+
+/* =========================
+   BADGE MODAL
+========================= */
+
+.badgeModal {
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  padding-top: var(--space-lg);
+}
+
+.badgeModalClose { position: absolute; top: 16px; right: 16px; }
+
+.badgeModalEyebrow {
+  display: block;
+  margin-bottom: var(--space-sm);
+  color: var(--green);
+}
+
+.badgeArtwork {
+  width: 160px;
+  height: 160px;
+  margin: 0 auto var(--space-md);
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.badgeArtworkImg { width: 100%; height: 100%; object-fit: contain; }
+
+.badgeArtworkFallback {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 96px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .unlockMode .badgeArtwork::after {
+    content: "";
+    position: absolute;
+    inset: -20px;
+    border-radius: var(--radius-full);
+    background: radial-gradient(circle, rgba(167,243,107,.35), transparent 70%);
+    animation: badgeGlow 1.8s ease-in-out infinite;
+    z-index: -1;
+  }
+
+  .badgeArtwork.scaleIn {
+    animation: badgeScaleIn .5s cubic-bezier(.34,1.56,.64,1);
+  }
+}
+
+@keyframes badgeScaleIn {
+  from { transform: scale(.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes badgeGlow {
+  0%, 100% { opacity: .5; transform: scale(1); }
+  50% { opacity: .9; transform: scale(1.08); }
+}
+
+.badgeModalName { font-size: 24px; margin: 4px 0; }
+.badgeModalDesc { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0 0 var(--space-sm); }
+.badgeModalStreak { display: inline-flex; margin-bottom: var(--space-md); }
+
+.badgeModalEarnedAt {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: var(--space-md);
+}
+
+.badgeModalActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: var(--space-sm);
+}
+
+.confettiField {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confettiPiece {
+  position: absolute;
+  top: -10px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .confettiPiece {
+    animation: confettiFall linear forwards;
+  }
+}
+
+@keyframes confettiFall {
+  0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(420px) rotate(360deg); }
+}
+
+/* =========================
+   SHARE MODAL
+========================= */
+
+.shareModal { max-width: 420px; }
+
+.shareCardPreview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #0a1410;
+  border: 1px solid var(--line);
+  margin-bottom: var(--space-md);
+  display: grid;
+  place-items: center;
+}
+
+.shareCardPreview img { width: 100%; height: 100%; object-fit: cover; }
+.shareCardLoading { font-size: 12px; color: var(--muted); }
+
+.shareNameToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #c6d6ce;
+  margin-bottom: var(--space-sm);
+  cursor: pointer;
+}
+
+.shareNameInput {
+  width: 100%;
+  height: 38px;
+  background: #0a1410;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  color: #cfe0d7;
+  padding: 0 11px;
+  font-size: 12px;
+  margin-bottom: var(--space-sm);
+  transition: border-color var(--transition);
+}
+
+.shareNameInput:focus { outline: none; border-color: #5d9f66; }
+
+.shareGridLabel { display: block; margin-bottom: 8px; }
+
+.shareGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.shareBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: #0d1b15;
+  color: #c6d6ce;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition), transform var(--transition);
+}
+
+.shareBtn:hover { border-color: var(--green); color: var(--green); transform: translateY(-1px); }
+
+.shareNote {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: var(--space-md) 0 0;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #62766e;
+}
+
+.shareNote svg { flex: none; margin-top: 2px; }
+
+@media (max-width: 850px) {
+  .badgeGrid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .shareGrid { grid-template-columns: repeat(2, 1fr); }
+}
