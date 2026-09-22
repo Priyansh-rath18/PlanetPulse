@@ -193,9 +193,13 @@ function isMonthCompliant(
       "0"
     )}-${String(day).padStart(2, "0")}`;
 
-    const dayTotal = byDate.get(key) || 0;
+    /*
+     * A day with no logged entries is NOT a streaked day - it must
+     * not be silently treated as "0 kg, therefore compliant".
+     */
+    if (!byDate.has(key)) return false;
 
-    if (dayTotal >= dailyAverage) {
+    if (byDate.get(key)! >= dailyAverage) {
       return false;
     }
   }
@@ -368,7 +372,8 @@ export function getCurrentMonthProgress(
       "0"
     )}-${String(day).padStart(2, "0")}`;
 
-    if ((byDate.get(key) || 0) < dailyAverage) {
+    /* Same rule as isMonthCompliant: no entries = not streaked. */
+    if (byDate.has(key) && byDate.get(key)! < dailyAverage) {
       compliantDays++;
     }
   }
