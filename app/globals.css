@@ -22,12 +22,46 @@ main{min-height:100vh;max-width:1240px;margin:auto;padding:0 28px 40px;position:
 
 .streakCard {
   transition: all 0.3s ease;
+  position: relative;
+}
+
+.streakCard .bigNumber {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: -2.2px;
+  background: linear-gradient(135deg, #a7f36b 0%, #66d68a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+
+.streakCard .bigNumber small {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  -webkit-text-fill-color: #71857d;
+  background: none;
+}
+
+.streakCard .miniTrend {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: #82978e;
 }
 
 .streakCard.active {
-  background: rgba(255, 107, 107, 0.08);
+  background: rgba(255, 107, 107, 0.12);
   border-color: #ff6b6b;
-  box-shadow: 0 0 20px rgba(255, 107, 107, 0.1);
+  box-shadow: 0 0 24px rgba(255, 107, 107, 0.15);
+}
+
+.streakCard.active .bigNumber {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8f82 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .streakCard.active .statTop svg {

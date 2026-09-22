@@ -553,48 +553,44 @@ export default function Home() {
 
   useEffect(() => {
     /*
-     * Update streak based on today's
-     * emission vs daily average
+     * Update streak: break if
+     * today exceeds daily budget
      */
 
     if (
-      streak.lastUpdated !== todayKey
+      isTodayUnderAverage === false
     ) {
       /*
-       * New day detected
+       * Daily budget exceeded:
+       * streak breaks immediately
        */
 
-      if (isTodayUnderAverage) {
-        if (streak.current === 0) {
-          setStreak({
-            current: 1,
-            startDate: todayKey,
-            lastUpdated: todayKey,
-          });
-        } else {
-          setStreak((prev) => ({
-            current: prev.current + 1,
-            startDate:
-              prev.startDate,
-            lastUpdated: todayKey,
-          }));
-        }
-      } else {
-        /*
-         * Streak broken or not started
-         */
+      setStreak({
+        current: 0,
+        startDate: "",
+        lastUpdated: todayKey,
+      });
+    } else if (
+      streak.lastUpdated !== todayKey &&
+      isTodayUnderAverage
+    ) {
+      /*
+       * New day, under budget:
+       * increment streak
+       */
 
-        setStreak({
-          current: 0,
-          startDate: "",
-          lastUpdated: todayKey,
-        });
-      }
+      setStreak((prev) => ({
+        current: prev.current + 1,
+        startDate:
+          prev.startDate ||
+          todayKey,
+        lastUpdated: todayKey,
+      }));
     }
   }, [
     todayKey,
     isTodayUnderAverage,
-    streak,
+    streak.lastUpdated,
   ]);
 
   /*
