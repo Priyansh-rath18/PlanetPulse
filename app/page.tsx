@@ -1,5 +1,7 @@
 "use client";
 
+import CarbonProfile from "./components/CarbonProfile";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   Activity,
@@ -57,41 +59,49 @@ const FACTORS: Record<ActivityType, Factor> = {
     unit: "km",
     factor: 0.2,
   },
+
   bus: {
     label: "Bus travel",
     unit: "km",
     factor: 0.08,
   },
+
   flight: {
     label: "Flight",
     unit: "km",
     factor: 0.25,
   },
+
   electricity: {
     label: "Electricity",
     unit: "kWh",
     factor: 0.8,
   },
+
   veg: {
     label: "Veg meal",
     unit: "meal",
     factor: 0.5,
   },
+
   nonveg: {
     label: "Non-veg meal",
     unit: "meal",
     factor: 2.0,
   },
+
   bike: {
     label: "Motorcycle / Bike",
     unit: "km",
     factor: 0.16,
   },
+
   auto: {
     label: "Auto Rickshaw",
     unit: "km",
     factor: 0.35,
   },
+
   truck: {
     label: "Truck",
     unit: "tonne-km",
@@ -163,10 +173,23 @@ function formatShortDate(date: Date): string {
 }
 
 export default function Home() {
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [target, setTarget] = useState<number>(50);
+  /*
+   * --------------------------------
+   * STATE
+   * --------------------------------
+   */
 
-  const [modal, setModal] = useState<boolean>(false);
+  const [profileModal, setProfileModal] =
+    useState(false);
+
+  const [entries, setEntries] =
+    useState<Entry[]>([]);
+
+  const [target, setTarget] =
+    useState<number>(50);
+
+  const [modal, setModal] =
+    useState<boolean>(false);
 
   const [type, setType] =
     useState<ActivityType>("car");
@@ -205,17 +228,21 @@ export default function Home() {
     useState<boolean>(true);
 
   /*
+   * --------------------------------
    * LOAD SAVED DATA
+   * --------------------------------
    */
 
   useEffect(() => {
     try {
       const savedEntries = JSON.parse(
-        localStorage.getItem("carbon_entries") || "[]"
+        localStorage.getItem("carbon_entries") ||
+          "[]"
       );
 
       const savedTarget = Number(
-        localStorage.getItem("carbon_target") || "50"
+        localStorage.getItem("carbon_target") ||
+          "50"
       );
 
       if (Array.isArray(savedEntries)) {
@@ -223,7 +250,8 @@ export default function Home() {
       }
 
       setTarget(
-        Number.isFinite(savedTarget) && savedTarget > 0
+        Number.isFinite(savedTarget) &&
+          savedTarget > 0
           ? savedTarget
           : 50
       );
@@ -234,29 +262,49 @@ export default function Home() {
   }, []);
 
   /*
+   * --------------------------------
    * SAVE ENTRIES
+   * --------------------------------
    */
 
   useEffect(() => {
-    localStorage.setItem(
-      "carbon_entries",
-      JSON.stringify(entries)
-    );
+    try {
+      localStorage.setItem(
+        "carbon_entries",
+        JSON.stringify(entries)
+      );
+    } catch (error) {
+      console.error(
+        "Could not save carbon entries:",
+        error
+      );
+    }
   }, [entries]);
 
   /*
+   * --------------------------------
    * SAVE TARGET
+   * --------------------------------
    */
 
   useEffect(() => {
-    localStorage.setItem(
-      "carbon_target",
-      String(target)
-    );
+    try {
+      localStorage.setItem(
+        "carbon_target",
+        String(target)
+      );
+    } catch (error) {
+      console.error(
+        "Could not save carbon target:",
+        error
+      );
+    }
   }, [target]);
 
   /*
+   * --------------------------------
    * GLOBAL CARBON API
+   * --------------------------------
    */
 
   useEffect(() => {
@@ -286,7 +334,9 @@ export default function Home() {
           source?: string;
         } = await response.json();
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         const current = Number(
           data.currentTonnes
@@ -331,7 +381,9 @@ export default function Home() {
   }, []);
 
   /*
+   * --------------------------------
    * CONTINUOUS GLOBAL PULSE
+   * --------------------------------
    */
 
   useEffect(() => {
@@ -358,7 +410,9 @@ export default function Home() {
   }, [globalRate]);
 
   /*
+   * --------------------------------
    * WEEK
+   * --------------------------------
    */
 
   const weekStart = useMemo(
@@ -372,7 +426,9 @@ export default function Home() {
   const weekEnd = useMemo(() => {
     const end = new Date(weekStart);
 
-    end.setDate(end.getDate() + 6);
+    end.setDate(
+      end.getDate() + 6
+    );
 
     return end;
   }, [weekStart]);
@@ -381,7 +437,9 @@ export default function Home() {
     dateKey(weekEnd);
 
   /*
+   * --------------------------------
    * WEEKLY DATA
+   * --------------------------------
    */
 
   const weeklyEntries = useMemo(
@@ -408,23 +466,32 @@ export default function Home() {
     [weeklyEntries]
   );
 
-  const todayTotal = useMemo(
-    () => {
-      const todayKey = dateKey(today);
+  /*
+   * --------------------------------
+   * TODAY
+   * --------------------------------
+   */
 
-      return entries
-        .filter(
-          (entry) =>
-            entry.date === todayKey
-        )
-        .reduce(
-          (total, entry) =>
-            total + entry.emission,
-          0
-        );
-    },
-    [entries]
-  );
+  const todayTotal = useMemo(() => {
+    const todayKey = dateKey(today);
+
+    return entries
+      .filter(
+        (entry) =>
+          entry.date === todayKey
+      )
+      .reduce(
+        (total, entry) =>
+          total + entry.emission,
+        0
+      );
+  }, [entries]);
+
+  /*
+   * --------------------------------
+   * TARGET / PROGRESS
+   * --------------------------------
+   */
 
   const progress =
     target > 0
@@ -438,7 +505,9 @@ export default function Home() {
     weeklyTotal > target;
 
   /*
+   * --------------------------------
    * CATEGORY BREAKDOWN
+   * --------------------------------
    */
 
   const categories = useMemo(() => {
@@ -476,27 +545,26 @@ export default function Home() {
       map[category] += entry.emission;
     });
 
-    return (
-      Object.entries(map)
-        .filter(
-          ([, value]) => value > 0
-        )
-        .sort(
-          (a, b) => b[1] - a[1]
-        )
-    );
+    return Object.entries(map)
+      .filter(
+        ([, value]) => value > 0
+      )
+      .sort(
+        (a, b) => b[1] - a[1]
+      );
   }, [weeklyEntries]);
 
-  const maxCategory =
-    Math.max(
-      ...categories.map(
-        ([, value]) => value
-      ),
-      1
-    );
+  const maxCategory = Math.max(
+    ...categories.map(
+      ([, value]) => value
+    ),
+    1
+  );
 
   /*
+   * --------------------------------
    * HISTORY FILTER
+   * --------------------------------
    */
 
   const filteredEntries = useMemo(
@@ -532,7 +600,9 @@ export default function Home() {
   );
 
   /*
+   * --------------------------------
    * DAILY WEEK DATA
+   * --------------------------------
    */
 
   const weekDays = useMemo(
@@ -544,8 +614,7 @@ export default function Home() {
             new Date(weekStart);
 
           date.setDate(
-            date.getDate() +
-              index
+            date.getDate() + index
           );
 
           const key =
@@ -570,8 +639,7 @@ export default function Home() {
               new Intl.DateTimeFormat(
                 "en",
                 {
-                  weekday:
-                    "short",
+                  weekday: "short",
                 }
               ).format(date),
             value,
@@ -589,7 +657,9 @@ export default function Home() {
   );
 
   /*
+   * --------------------------------
    * ADD ACTIVITY
+   * --------------------------------
    */
 
   function addActivity() {
@@ -612,10 +682,12 @@ export default function Home() {
       return;
     }
 
+    /*
+     * Sanity checks
+     */
+
     if (
-      TRANSPORT_TYPES.includes(
-        type
-      ) &&
+      TRANSPORT_TYPES.includes(type) &&
       q > 10000
     ) {
       setNotice(
@@ -666,7 +738,9 @@ export default function Home() {
   }
 
   /*
-   * REMOVE
+   * --------------------------------
+   * REMOVE ACTIVITY
+   * --------------------------------
    */
 
   function removeEntry(id: string) {
@@ -679,7 +753,9 @@ export default function Home() {
   }
 
   /*
-   * FILTER RESET
+   * --------------------------------
+   * RESET FILTERS
+   * --------------------------------
    */
 
   function clearFilters() {
@@ -689,7 +765,9 @@ export default function Home() {
   }
 
   /*
-   * TARGET CHANGE
+   * --------------------------------
+   * MANUAL TARGET CHANGE
+   * --------------------------------
    */
 
   function handleTargetChange(
@@ -709,7 +787,108 @@ export default function Home() {
   }
 
   /*
+   * --------------------------------
+   * APPLY PERSONAL CARBON BUDGET
+   * --------------------------------
+   *
+   * CarbonProfile sends:
+   *
+   * onApply(
+   *   weeklyBudget,
+   *   profile
+   * )
+   *
+   * We use the calculated weeklyBudget
+   * as the dashboard's weekly target.
+   */
+
+  function applyPersonalBudget(
+    weeklyBudget: number,
+    profile: unknown
+  ) {
+    const budget = Number(
+      weeklyBudget
+    );
+
+    /*
+     * Validate calculated budget
+     */
+
+    if (
+      !Number.isFinite(budget) ||
+      budget <= 0
+    ) {
+      setNotice(
+        "Could not calculate a valid weekly carbon budget."
+      );
+
+      return;
+    }
+
+    /*
+     * Round the budget to one decimal
+     * for a clean dashboard value.
+     */
+
+    const finalBudget = Number(
+      budget.toFixed(1)
+    );
+
+    /*
+     * Update weekly target.
+     *
+     * This automatically updates:
+     * - Weekly Target card
+     * - progress bar
+     * - remaining budget
+     * - exceeded status
+     * - percentage
+     */
+
+    setTarget(finalBudget);
+
+    /*
+     * Save profile.
+     *
+     * CarbonProfile already saves its own
+     * profile, but saving it here as well
+     * keeps the dashboard state synchronized.
+     */
+
+    try {
+      localStorage.setItem(
+        "carbon_profile",
+        JSON.stringify(profile)
+      );
+
+      localStorage.setItem(
+        "carbon_target",
+        String(finalBudget)
+      );
+    } catch (error) {
+      console.error(
+        "Could not save personal budget:",
+        error
+      );
+    }
+
+    /*
+     * Close budget modal
+     */
+
+    setProfileModal(false);
+
+    /*
+     * Clear old notices
+     */
+
+    setNotice("");
+  }
+
+  /*
+   * --------------------------------
    * RENDER
+   * --------------------------------
    */
 
   return (
@@ -718,9 +897,21 @@ export default function Home() {
 
       <div className="ambient ambientTwo" />
 
-      {/* NAV */}
+      {/* ================================
+          NAV
+          ================================ */}
 
       <nav className="nav">
+        <button
+          className="secondaryBtn"
+          onClick={() =>
+            setProfileModal(true)
+          }
+        >
+          <Gauge size={16} />
+          Build my budget
+        </button>
+
         <div className="brand">
           <div className="brandMark">
             <Leaf size={19} />
@@ -750,12 +941,15 @@ export default function Home() {
         </button>
       </nav>
 
-      {/* HERO */}
+      {/* ================================
+          HERO
+          ================================ */}
 
       <section className="hero">
         <div>
           <div className="eyebrow">
             <span className="liveDot" />
+
             LIVE ESTIMATE •{" "}
             {new Intl.DateTimeFormat(
               "en",
@@ -770,6 +964,7 @@ export default function Home() {
           <h1>
             See your impact.
             <br />
+
             <span>
               Change your trajectory.
             </span>
@@ -786,6 +981,7 @@ export default function Home() {
 
         <div className="heroGlobe">
           <div className="globeRing ring1" />
+
           <div className="globeRing ring2" />
 
           <div className="globeCore">
@@ -793,12 +989,16 @@ export default function Home() {
           </div>
 
           <div className="orbitDot dotA" />
+
           <div className="orbitDot dotB" />
+
           <div className="orbitDot dotC" />
         </div>
       </section>
 
-      {/* GLOBAL PULSE */}
+      {/* ================================
+          GLOBAL PULSE
+          ================================ */}
 
       <section className="globalPulse">
         <div className="pulseIcon">
@@ -852,7 +1052,9 @@ export default function Home() {
 
         <div className="pulseRate">
           <ArrowUpRight size={16} />
+
           ~
+
           {globalRate === null
             ? "—"
             : globalRate.toFixed(0)}{" "}
@@ -860,12 +1062,17 @@ export default function Home() {
         </div>
       </section>
 
-      {/* STATS */}
+      {/* ================================
+          STATS
+          ================================ */}
 
       <section className="statsGrid">
+        {/* THIS WEEK */}
+
         <div className="statCard mainStat">
           <div className="statTop">
             <span>THIS WEEK</span>
+
             <Gauge size={18} />
           </div>
 
@@ -876,14 +1083,18 @@ export default function Home() {
 
           <div className="miniTrend">
             <ArrowDownRight size={15} />
+
             Personal activity
             footprint
           </div>
         </div>
 
+        {/* WEEKLY TARGET */}
+
         <div className="statCard">
           <div className="statTop">
             <span>WEEKLY TARGET</span>
+
             <Leaf size={18} />
           </div>
 
@@ -909,9 +1120,12 @@ export default function Home() {
           </label>
         </div>
 
+        {/* TODAY */}
+
         <div className="statCard">
           <div className="statTop">
             <span>TODAY</span>
+
             <CalendarDays size={18} />
           </div>
 
@@ -926,10 +1140,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* DASHBOARD */}
+      {/* ================================
+          DASHBOARD
+          ================================ */}
 
       <section className="dashboardGrid">
-        {/* TARGET */}
+        {/* ==============================
+            WEEKLY TARGET
+            ============================== */}
 
         <div className="panel targetPanel">
           <div className="panelHeader">
@@ -1029,7 +1247,9 @@ export default function Home() {
           </div>
         </div>
 
-        {/* BREAKDOWN */}
+        {/* ==============================
+            BREAKDOWN
+            ============================== */}
 
         <div className="panel">
           <div className="panelHeader">
@@ -1047,8 +1267,7 @@ export default function Home() {
           </div>
 
           <div className="bars">
-            {categories.length ===
-            0 ? (
+            {categories.length === 0 ? (
               <div className="empty">
                 Add activities to see
                 your breakdown.
@@ -1094,7 +1313,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* WEEK CHART */}
+      {/* ================================
+          WEEK CHART
+          ================================ */}
 
       <section className="panel chartPanel">
         <div className="panelHeader">
@@ -1121,7 +1342,9 @@ export default function Home() {
             >
               <div className="dayValue">
                 {day.value
-                  ? day.value.toFixed(1)
+                  ? day.value.toFixed(
+                      1
+                    )
                   : "—"}
               </div>
 
@@ -1149,7 +1372,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* HISTORY */}
+      {/* ================================
+          HISTORY
+          ================================ */}
 
       <section className="panel historyPanel">
         <div className="panelHeader historyHeader">
@@ -1171,6 +1396,8 @@ export default function Home() {
             Reset filters
           </button>
         </div>
+
+        {/* FILTERS */}
 
         <div className="filters">
           <div className="selectWrap">
@@ -1238,14 +1465,20 @@ export default function Home() {
           />
         </div>
 
+        {/* TABLE */}
+
         <div className="tableWrap">
           <table>
             <thead>
               <tr>
                 <th>Activity</th>
+
                 <th>Date</th>
+
                 <th>Quantity</th>
+
                 <th>CO₂</th>
+
                 <th />
               </tr>
             </thead>
@@ -1343,7 +1576,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* ================================
+          FOOTER
+          ================================ */}
 
       <footer>
         <span>
@@ -1357,7 +1592,9 @@ export default function Home() {
         </span>
       </footer>
 
-      {/* LOG ACTIVITY MODAL */}
+      {/* ================================
+          LOG ACTIVITY MODAL
+          ================================ */}
 
       {modal && (
         <div
@@ -1395,6 +1632,8 @@ export default function Home() {
                 <X />
               </button>
             </div>
+
+            {/* ACTIVITY TYPE */}
 
             <label>
               Activity type
@@ -1437,6 +1676,8 @@ export default function Home() {
               })}
             </div>
 
+            {/* QUANTITY */}
+
             <div className="inputRow">
               <div>
                 <label>
@@ -1454,6 +1695,7 @@ export default function Home() {
                     setQuantity(
                       event.target.value
                     );
+
                     setNotice("");
                   }}
                 />
@@ -1474,6 +1716,8 @@ export default function Home() {
               </div>
             </div>
 
+            {/* DATE */}
+
             <label>
               Date
             </label>
@@ -1485,9 +1729,12 @@ export default function Home() {
                 setEntryDate(
                   event.target.value
                 );
+
                 setNotice("");
               }}
             />
+
+            {/* CALCULATION PREVIEW */}
 
             <div className="calcPreview">
               <span>
@@ -1524,12 +1771,17 @@ export default function Home() {
               </small>
             </div>
 
+            {/* NOTICE */}
+
             {notice && (
               <div className="modalNotice">
                 <CircleAlert size={16} />
+
                 {notice}
               </div>
             )}
+
+            {/* SAVE */}
 
             <button
               type="button"
@@ -1539,11 +1791,26 @@ export default function Home() {
               }
             >
               <Save size={17} />
+
               Save activity
             </button>
           </div>
         </div>
       )}
+
+      {/* ================================
+          PERSONAL CARBON BUDGET MODAL
+          ================================ */}
+
+      <CarbonProfile
+        open={profileModal}
+        onClose={() =>
+          setProfileModal(false)
+        }
+        onApply={
+          applyPersonalBudget
+        }
+      />
     </main>
   );
 }
