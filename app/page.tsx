@@ -1313,7 +1313,12 @@ export default function Home() {
           <div className="globeRing ring2" />
 
           <div className="globeCore">
-            <Cloud size={40} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/hero-globe.webp"
+              alt="CarbonPulse"
+              className="globeCoreImg"
+            />
           </div>
 
           <div className="orbitDot dotA" />
