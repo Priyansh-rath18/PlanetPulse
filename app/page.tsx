@@ -1026,7 +1026,7 @@ export default function Home() {
           <div>
             <strong>
               Carbon
-              <span>Pulse</span>
+              <span>Track</span>
             </strong>
 
             <small>

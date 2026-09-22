@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Carbon Pulse — Carbon Footprint Tracker",
-  description: "Track daily choices and understand your carbon footprint.",
+  title: "CarbonTrack — Personal Climate Dashboard",
+  description: "Track your carbon footprint, make better choices, and build a greener tomorrow.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
