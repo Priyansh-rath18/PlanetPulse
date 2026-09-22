@@ -6,6 +6,7 @@ import BadgeModal, {
   type BadgeModalData,
 } from "./components/BadgeModal";
 import ShareModal from "./components/ShareModal";
+import CarbonDiscoveries from "./components/CarbonDiscoveries";
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -1394,6 +1395,12 @@ export default function Home() {
           tonnes/sec
         </div>
       </section>
+
+      {/* ================================
+          CARBON DISCOVERIES
+          ================================ */}
+
+      <CarbonDiscoveries />
 
       {/* ================================
           STATS

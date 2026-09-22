@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Share2, X } from "lucide-react";
 import BadgeImage from "./BadgeImage";
+import { useReducedMotion } from "../lib/useReducedMotion";
 
 export type BadgeModalData = {
   id: string;
@@ -28,27 +29,6 @@ const CONFETTI_COLORS = [
   "#eef7f1",
   "#4ed7a3",
 ];
-
-function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
-    const query = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    );
-
-    setReduced(query.matches);
-
-    const listener = (event: MediaQueryListEvent) =>
-      setReduced(event.matches);
-
-    query.addEventListener("change", listener);
-
-    return () => query.removeEventListener("change", listener);
-  }, []);
-
-  return reduced;
-}
 
 export default function BadgeModal({
   badge,

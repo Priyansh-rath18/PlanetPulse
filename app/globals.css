@@ -589,3 +589,110 @@ main{min-height:100vh;max-width:1240px;margin:auto;padding:0 28px 40px;position:
   .badgeGrid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
   .shareGrid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* =========================
+   CARBON DISCOVERIES
+========================= */
+
+.discoveryPanel {
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.discoveryPanel::before {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle, rgba(167,243,107,.10), transparent 70%);
+  pointer-events: none;
+}
+
+.discoveryBody {
+  margin-top: var(--space-md);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .3s ease, transform .3s ease;
+}
+
+.discoveryHidden {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .discoveryBody { transition: opacity .15s ease; transform: none; }
+  .discoveryHidden { transform: none; }
+}
+
+.discoveryTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+
+.discoveryTitle svg { color: var(--green); flex: none; }
+
+.discoveryFact {
+  margin: 0 0 16px;
+  color: #c6d6ce;
+  font-size: 14px;
+  line-height: 1.7;
+  max-width: 640px;
+}
+
+.discoveryMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.discoveryTag {
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  font-weight: 800;
+  color: #789087;
+}
+
+.discoverySource {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  text-decoration: none;
+  transition: filter var(--transition);
+}
+
+.discoverySource:hover { filter: brightness(1.15); }
+
+.discoveryDots {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.discoveryDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: #253a2f;
+  transition: background var(--transition-slow), transform var(--transition-slow);
+}
+
+.discoveryDotActive {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  transform: scale(1.25);
+}
