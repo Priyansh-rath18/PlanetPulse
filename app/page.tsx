@@ -90,7 +90,11 @@ export default function Home() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [notice, setNotice] = useState("");
-  const [pulse, setPulse] = useState(0);
+  const [globalPulse, setGlobalPulse] = useState<number | null>(null);
+  const [globalRate, setGlobalRate] = useState<number | null>(null);
+  const [globalUpdatedAt, setGlobalUpdatedAt] = useState<string | null>(null);
+  const [globalSource, setGlobalSource] = useState<string>("Climate TRACE");
+  const [globalLoading, setGlobalLoading] = useState(true);
 
   useEffect(() => {
     try {
@@ -110,9 +114,36 @@ export default function Home() {
   }, [target]);
 
   useEffect(() => {
-    const timer = setInterval(() => setPulse((v) => v + 1.15), 1000);
-    return () => clearInterval(timer);
+    let cancelled = false;
+
+    async function loadGlobalEmissions() {
+      try {
+        const response = await fetch("/api/global-emissions", { cache: "no-store" });
+        if (!response.ok) throw new Error(`Global emissions API returned ${response.status}`);
+        const data = await response.json();
+        if (cancelled) return;
+        setGlobalPulse(Number(data.currentTonnes));
+        setGlobalRate(Number(data.tonnesPerSecond));
+        setGlobalUpdatedAt(data.dataAsOf || null);
+        setGlobalSource(data.source || "Climate TRACE");
+      } catch (error) {
+        console.error("Global emissions API error:", error);
+      } finally {
+        if (!cancelled) setGlobalLoading(false);
+      }
+    }
+
+    loadGlobalEmissions();
+    return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (globalPulse === null || globalRate === null) return;
+    const timer = setInterval(() => {
+      setGlobalPulse((value) => (value === null ? value : value + globalRate));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [globalPulse !== null, globalRate]);
 
   const weekStart = mondayOfWeek(today);
   const weekStartKey = dateKey(weekStart);
@@ -226,10 +257,11 @@ export default function Home() {
         <div className="pulseIcon"><Cloud size={22} /></div>
         <div className="pulseCopy">
           <span>GLOBAL CARBON PULSE</span>
-          <strong>{(21_480_000_000 + pulse * 1180).toLocaleString("en-IN", { maximumFractionDigits: 0 })} kg</strong>
-          <small>Estimated fossil CO₂ emitted this year · continuously estimated, not directly measured</small>
+          <strong>{globalLoading || globalPulse === null ? "Loading…" : `${globalPulse.toLocaleString("en-IN", { maximumFractionDigits: 0 })} tonnes`}</strong>
+          <small>2026 global GHG estimate · Climate TRACE data through June 2026 · continuously extrapolated between data updates</small>
+          {globalUpdatedAt && <small>Latest data: {new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${globalUpdatedAt}T12:00:00`))} · {globalSource}</small>}
         </div>
-        <div className="pulseRate"><ArrowUpRight size={16} /> ~1.18 tonnes/sec</div>
+        <div className="pulseRate"><ArrowUpRight size={16} /> ~{globalRate === null ? "—" : globalRate.toFixed(0)} tonnes/sec</div>
       </section>
 
       <section className="statsGrid">
