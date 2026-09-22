@@ -225,7 +225,9 @@ export default function CarbonProfile({
   const [
     electricityPeriod,
     setElectricityPeriod,
-  ] = useState<ElectricityPeriod>("last_bill");
+  ] = useState<ElectricityPeriod>(
+    "estimated_monthly"
+  );
 
   const [monthlyKwh, setMonthlyKwh] =
     useState(150);
@@ -404,6 +406,17 @@ export default function CarbonProfile({
         80
       ) /
         100);
+
+  /*
+   * Daily average, spread across weekdays only
+   * (Mon-Fri) rather than all 7 calendar days -
+   * useful for a commute/workday-driven budget.
+   */
+
+  const WEEKDAYS_PER_WEEK = 5;
+
+  const dailyAverage =
+    weeklyBudget / WEEKDAYS_PER_WEEK;
 
   /*
    * =========================================================
@@ -1412,6 +1425,16 @@ export default function CarbonProfile({
                   Electricity{" "}
                   <b>
                     {weeklyElectricity.toFixed(
+                      1
+                    )}{" "}
+                    kg
+                  </b>
+                </span>
+
+                <span>
+                  Daily avg (weekdays){" "}
+                  <b>
+                    {dailyAverage.toFixed(
                       1
                     )}{" "}
                     kg
